@@ -1,63 +1,44 @@
 % Parametros Circuito
 
-L = 0.02533;
-C = 100e-6;
-Rd = 25;
-R = 15.92;
-Cv = 500e-6;
-P = 96;
+P = 120;
 Vd = 60;
 Vr = 60/sqrt(2);
 f = 50;
 w = 2*pi*f;
 s = tf('s');
-Il = (sqrt(2)*P*cos(0))/Vr;
-D = (1/2+sqrt(Vr^2+(w*L*P/Vr)^2)*cos(atan(w*L*P/Vr)));
-Z0 = (s^2*L*C*Rd*R+s*C*Rd*R+R)/(s*C*Rd*R+1);
+Cdc = 500e-6;
+C = 600e-6;
+L = 0.01688;
+R1 = 0.0;
+R2 = 0.0;
+R = 5.3052;
+Zeq = (s^2*L*C*(R+R2)+s*(L+C*(R1*R+R1*R2+R2*R))+R+R1)/(1+s*C*(R+R2));
 
-Kp = 2.5;
-Ki = 4.5;
+SensC = 0.2;
+SensV = 0.006;
 
-% F.T. Vdc y IL
-Hvd = (-Z0*2*Il-2*D*Vd)/(s*Cv*Z0+D^2);
-Hil = (s*2*Cv*Vd-2*Il*D)/(s*Cv*Z0+D^2);
+I0 = sqrt(2)*P/Vr;
+D0 = 1/2+sqrt(Vr^2+(w*L*P/Vr)^2)/(sqrt(2)*Vd)*cos(atan(w*L*P/Vr^2));
 
-% Controladores
+G_vdc_d = -(Zeq*2*I0+D0*2*Vd)/(s*Cdc*Zeq+D0^2);
+G_il_d = (s*Cdc*2*Vd-2*I0*D0)/(s*Cdc*Zeq+D0^2);
+Bode_Vdc = figure;
+Bode_IL = figure;
+% figure(Bode_Vdc);
+% bode(G_vdc_d)
+figure(Bode_IL);
+% bode(G_il_d)
 
-PIv = (Kp*s+Ki)/s;
-PRc = ((s^2+2*pi*s+(2*pi*50)^2)*1.0446)+1000*pi/(s^2+2*pi*s+(2*pi*50)^2);
-
-% Lazos de control
-
-Ti = Hil*PRc;
-Hvi = Ti/(1+Ti);
-Hvv = Hvd*Hvi/Hil;
-
-% rltool(Hil)
-
-q = -0.47393*(1+0.00025*s)*(1-0.0015*s)*(1+0.041*s)/(s*(1+2.1e-10*s)*(1+0.003*s)*(1+0.04*s));
+% Filtros
+% PR
+Kp = L*2*1700*pi/(2*Vd);
+Kr = 200*pi*s/(s^2+2*pi+w^2);
+PR = Kp+Kr;
+CLoopIL = series(G_il_d,PR);
+bode(CLoopIL)
+G_il_vc = CLoopIL/(SensC*(1+CLoopIL));
+G_vdc_vc = G_vdc_d*G_il_vc/G_il_d;
+rltool(G_vdc_vc)
 
 
-% 
-% bodeHv = figure;
-% bodeHi = figure;
-% NyHv = figure;
-% NyHi = figure;
-% 
-% figure(bodeHv);
-% bode(Hvd);
-% grid on
-% title("Bode funcion transferencia Vdc");
-% figure(bodeHi);
-% bode(Hil);
-% grid on
-% title("Bode funcion transferencia IL");
-% 
-% figure(NyHv);
-% nyquist(Hv);
-% 
-% figure(NyHi);
-% nyquist(Hi);
 
-rltool(Hvd)
-rltool(Hil)
